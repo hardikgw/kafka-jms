@@ -4,8 +4,12 @@ package biz.channelit.kafka;
  * Created by hp on 3/24/17.
  */
 import org.apache.activemq.ActiveMQConnectionFactory;
+import org.apache.kafka.clients.consumer.Consumer;
+import org.apache.kafka.clients.consumer.KafkaConsumer;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.Producer;
+import org.apache.kafka.common.serialization.StringDeserializer;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.autoconfigure.jms.DefaultJmsListenerContainerFactoryConfigurer;
@@ -18,6 +22,8 @@ import org.springframework.jms.core.JmsTemplate;
 
 import javax.jms.ConnectionFactory;
 import javax.jms.JMSException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Properties;
 
 @SpringBootApplication
@@ -48,11 +54,14 @@ public class App {
         // Send a message with a POJO - the template reuse the message converter
         System.out.println("Sending an email message.");
         jmsTemplate.convertAndSend("abc_source", "Hello World");
+
+        AppConsumer appConsumer = new AppConsumer(kafkaConsumer());
+        appConsumer.run();
     }
 
     @Bean(name="kafkaProducer")
     public Producer<String, String> kafkaProducer() throws JMSException {
-        String topicName = "abc";
+        String topicName = "test";
         Properties props = new Properties();
         props.put("bootstrap.servers", "localhost:9092");
         props.put("acks", "all");
@@ -65,6 +74,21 @@ public class App {
 
         Producer<String, String> producer = new KafkaProducer<String, String>(props);
         return producer;
+    }
+
+    //@Bean(name="kafkaConsumer")
+    public static Consumer<String, String> kafkaConsumer() {
+        Properties props = new Properties();
+        props.put("bootstrap.servers", "localhost:9092");
+        props.put("group.id", "abi-test");
+        props.put("key.deserializer", StringDeserializer.class.getName());
+        props.put("value.deserializer", StringDeserializer.class.getName());
+        Consumer consumer = new KafkaConsumer<>(props);
+        List<String> topics = new ArrayList<>();
+        topics.add("abc");
+        topics.add("test");
+        consumer.subscribe(topics);
+        return consumer;
     }
 
 }
